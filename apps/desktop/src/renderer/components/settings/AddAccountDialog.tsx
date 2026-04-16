@@ -236,8 +236,8 @@ export function AddAccountDialog({
 
   const oauthAuthLabel = isCopilotOAuth
     ? isEditing
-      ? 'Re-authenticate with GitHub'
-      : 'Authenticate with GitHub'
+      ? t('providers.dialog.copilotReauthenticate')
+      : t('providers.dialog.copilotAuthenticate')
     : isCodexOAuth
       ? isEditing
         ? t('providers.dialog.codexReauthenticate')
@@ -258,48 +258,29 @@ export function AddAccountDialog({
     setOauthStatus('authenticating');
     setOauthError(null);
 
-    // Handle GitHub Copilot Device Flow OAuth
+    // Handle GitHub Copilot OAuth via gh CLI
+    // Uses `gh auth token` if already authenticated, or `gh auth login --web` if not
     if (isCopilotOAuth) {
       try {
         setOauthStatus('authenticating');
         setOauthError(null);
-        setDeviceFlowData(null);
 
-        // Start Device Flow
-        const initResult = await window.electronAPI.githubCopilotStartDeviceFlow();
-        if (!initResult?.success || !initResult.data) {
-          setOauthStatus('error');
-          setOauthError(initResult?.error ?? 'Failed to start Device Flow');
-          return;
-        }
-
-        setDeviceFlowData(initResult.data);
-        setOauthStatus('waiting');
-
-        // Poll for completion (blocks until user authorizes or timeout)
-        const result = await window.electronAPI.githubCopilotCompleteDeviceFlow(
-          initResult.data.deviceCode,
-          initResult.data.interval,
-          initResult.data.expiresIn
-        );
-
+        // Single call: checks gh auth, runs login if needed, returns token + user
+        const result = await window.electronAPI.githubCopilotStartDeviceFlow();
         if (!result?.success || !result.data) {
           setOauthStatus('error');
-          setOauthError(result?.error ?? 'Authentication failed');
-          setDeviceFlowData(null);
+          setOauthError(result?.error ?? 'GitHub authentication failed');
           return;
         }
 
         // Store the GitHub token as the API key for this account
         setApiKey(result.data.accessToken);
         setOauthStatus('success');
-        setOauthEmail('github.com');
-        setDeviceFlowData(null);
+        setOauthEmail(result.data.email ?? result.data.username ?? 'github.com');
 
       } catch (err) {
         setOauthStatus('error');
         setOauthError(err instanceof Error ? err.message : 'Unexpected error');
-        setDeviceFlowData(null);
       }
       return;
     }
@@ -537,16 +518,18 @@ export function AddAccountDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {isCopilotOAuth
-              ? 'Authenticate with GitHub to use Copilot models via Device Flow.'
-              : isCodexOAuth
-                ? t('providers.dialog.codexOAuthDescription')
-                : isOAuthOnly
-                  ? t('providers.dialog.oauthDescription')
-                  : provider === 'zai' && billingModelOverride === 'subscription'
-                    ? t('providers.dialog.zaiCodingPlanDescription')
-                    : provider === 'zai'
-                      ? t('providers.dialog.zaiUsageBasedDescription')
-                      : t('providers.dialog.apiKeyDescription')}
+                ? t('providers.dialog.copilotOAuthDescription')
+                : isCodexOAuth
+                  ? t('providers.dialog.codexOAuthDescription')
+                  : isOAuthOnly
+                    ? t('providers.dialog.oauthDescription')
+                    : provider === 'copilot'
+                      ? t('providers.dialog.copilotOAuthDescription')
+                      : provider === 'zai' && billingModelOverride === 'subscription'
+                        ? t('providers.dialog.zaiCodingPlanDescription')
+                        : provider === 'zai'
+                          ? t('providers.dialog.zaiUsageBasedDescription')
+                          : t('providers.dialog.apiKeyDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -580,49 +563,21 @@ export function AddAccountDialog({
             {oauthStatus === 'authenticating' && (
               <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border p-3 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span>{isCodexOAuth ? t('providers.dialog.codexAuthenticating') : t('providers.dialog.oauthAuthenticating')}</span>
+                <span>{isCopilotOAuth ? t('providers.dialog.copilotAuthenticating') : isCodexOAuth ? t('providers.dialog.codexAuthenticating') : t('providers.dialog.oauthAuthenticating')}</span>
               </div>
             )}
 
-            {oauthStatus === 'waiting' && isCopilotOAuth && deviceFlowData && (
-              <div className="space-y-3">
-                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Visit GitHub to authorize:
-                  </p>
-                  <a
-                    href={deviceFlowData.verificationUri}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary underline hover:no-underline font-medium"
-                  >
-                    {deviceFlowData.verificationUri}
-                  </a>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Code:</span>
-                    <code className="text-lg font-bold font-mono tracking-widest bg-muted/50 px-3 py-1 rounded">
-                      {deviceFlowData.userCode}
-                    </code>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span>Waiting for authorization...</span>
-                </div>
-              </div>
-            )}
-
-            {oauthStatus === 'waiting' && !isCopilotOAuth && (
+            {oauthStatus === 'waiting' && (
               <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border p-3 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span>{isCodexOAuth ? t('providers.dialog.codexWaiting') : t('providers.dialog.oauthWaiting')}</span>
+                <span>{isCopilotOAuth ? t('providers.dialog.copilotWaiting') : isCodexOAuth ? t('providers.dialog.codexWaiting') : t('providers.dialog.oauthWaiting')}</span>
               </div>
             )}
 
             {oauthStatus === 'success' && (
               <div className="flex items-center gap-2 rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>{isCopilotOAuth ? 'GitHub Copilot authenticated successfully' : isCodexOAuth ? t('providers.dialog.codexSuccess') : t('providers.dialog.oauthSuccess', { email: oauthEmail ?? 'Unknown' })}</span>
+                <span>{isCopilotOAuth ? t('providers.dialog.copilotSuccess') : isCodexOAuth ? t('providers.dialog.codexSuccess') : t('providers.dialog.oauthSuccess', { email: oauthEmail ?? 'Unknown' })}</span>
               </div>
             )}
 
@@ -630,7 +585,7 @@ export function AddAccountDialog({
               <div className="space-y-2">
                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{isCopilotOAuth ? `Authentication failed: ${oauthError ?? 'Unknown'}` : isCodexOAuth ? t('providers.dialog.codexError', { error: oauthError ?? 'Unknown' }) : t('providers.dialog.oauthError', { error: oauthError ?? 'Unknown' })}</span>
+                  <span>{isCopilotOAuth ? t('providers.dialog.copilotError', { error: oauthError ?? 'Unknown' }) : isCodexOAuth ? t('providers.dialog.codexError', { error: oauthError ?? 'Unknown' }) : t('providers.dialog.oauthError', { error: oauthError ?? 'Unknown' })}</span>
                 </div>
                 <Button
                   variant="outline"
@@ -684,14 +639,29 @@ export function AddAccountDialog({
             {/* API Key */}
             {needsApiKey && (
               <div className="space-y-2">
-                <Label htmlFor="account-apikey">{t('providers.dialog.fields.apiKey')}</Label>
+                <Label htmlFor="account-apikey">
+                  {provider === 'copilot' ? t('providers.dialog.copilotTokenLabel') : t('providers.dialog.fields.apiKey')}
+                </Label>
                 <Input
                   id="account-apikey"
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={t('providers.dialog.placeholders.apiKey')}
+                  placeholder={provider === 'copilot' ? 'ghp_...' : t('providers.dialog.placeholders.apiKey')}
                 />
+                {provider === 'copilot' && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('providers.dialog.copilotTokenHint')}{' '}
+                    <a
+                      href="https://github.com/settings/tokens"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline hover:no-underline"
+                    >
+                      github.com/settings/tokens
+                    </a>
+                  </p>
+                )}
               </div>
             )}
 

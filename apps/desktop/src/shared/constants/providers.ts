@@ -22,8 +22,8 @@ export const PROVIDER_REGISTRY: ProviderInfo[] = [
   {
     id: 'copilot', name: 'GitHub Copilot', description: 'AI models via Copilot subscription',
     category: 'popular',
-    authMethods: ['oauth'], envVars: ['GITHUB_TOKEN'],
-    configFields: [], website: 'https://github.com/features/copilot',
+    authMethods: ['oauth', 'api-key'], envVars: ['GITHUB_TOKEN'],
+    configFields: [], website: 'https://github.com/settings/tokens',
   },
   {
     id: 'openrouter', name: 'OpenRouter', description: 'Access 300+ models from all providers',

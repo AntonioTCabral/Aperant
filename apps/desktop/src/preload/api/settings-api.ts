@@ -50,9 +50,9 @@ export interface SettingsAPI {
   codexAuthStatus: () => Promise<{ success: boolean; data?: { isAuthenticated: boolean; expiresAt?: number }; error?: string }>;
   codexAuthLogout: () => Promise<{ success: boolean; error?: string }>;
 
-  // GitHub Copilot Device Flow authentication
-  githubCopilotStartDeviceFlow: () => Promise<{ success: boolean; data?: { userCode: string; verificationUri: string; deviceCode: string; interval: number; expiresIn: number }; error?: string }>;
-  githubCopilotCompleteDeviceFlow: (deviceCode: string, interval: number, expiresIn: number) => Promise<{ success: boolean; data?: { accessToken: string; tokenType: string; scope: string }; error?: string }>;
+  // GitHub Copilot authentication via gh CLI
+  githubCopilotStartDeviceFlow: () => Promise<{ success: boolean; data?: { accessToken: string; email?: string; username?: string }; error?: string }>;
+  githubCopilotCompleteDeviceFlow: (deviceCode: string, interval: number, expiresIn: number) => Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }>;
 }
 
 export const createSettingsAPI = (): SettingsAPI => ({
