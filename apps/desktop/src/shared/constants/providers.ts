@@ -20,6 +20,12 @@ export const PROVIDER_REGISTRY: ProviderInfo[] = [
     configFields: [], website: 'https://aistudio.google.com/apikey',
   },
   {
+    id: 'copilot', name: 'GitHub Copilot', description: 'AI models via Copilot subscription',
+    category: 'popular',
+    authMethods: ['oauth'], envVars: ['GITHUB_TOKEN'],
+    configFields: [], website: 'https://github.com/features/copilot',
+  },
+  {
     id: 'openrouter', name: 'OpenRouter', description: 'Access 300+ models from all providers',
     category: 'popular',
     authMethods: ['api-key'], envVars: ['OPENROUTER_API_KEY'],

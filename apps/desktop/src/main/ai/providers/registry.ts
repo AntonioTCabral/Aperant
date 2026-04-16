@@ -101,6 +101,18 @@ function createProviderSDKInstance(
       });
     }
 
+    case SupportedProvider.Copilot:
+      return createOpenAICompatible({
+        name: 'copilot',
+        apiKey: apiKey ?? 'copilot',
+        baseURL: baseURL ?? 'https://api.githubcopilot.com',
+        headers: {
+          ...headers,
+          'Copilot-Integration-Id': 'aperant-desktop',
+          'Editor-Version': 'Aperant/1.0',
+        },
+      });
+
     default: {
       const _exhaustive: never = provider;
       throw new Error(`Unsupported provider: ${_exhaustive}`);

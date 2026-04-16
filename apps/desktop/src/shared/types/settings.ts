@@ -152,6 +152,7 @@ export type SupportedCLI =
   | 'opencode'      // OpenCode
   | 'kilocode'      // Kilo Code CLI
   | 'codex'         // Codex CLI
+  | 'github-copilot' // GitHub Copilot CLI (gh copilot)
   | 'custom';
 
 export interface ThemePreviewColors {
@@ -284,6 +285,7 @@ export interface AppSettings {
   globalAzureApiKey?: string;
   globalAzureBaseUrl?: string;
   globalBedrockRegion?: string;
+  globalCopilotToken?: string;
   // Unified provider accounts (multi-provider)
   providerAccounts?: ProviderAccount[];
   /** Global priority order — array of ProviderAccount IDs. First = highest priority. */

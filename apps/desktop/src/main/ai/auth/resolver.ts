@@ -332,6 +332,7 @@ const BUILTIN_TO_SUPPORTED: Record<string, SupportedProvider> = {
   openrouter: 'openrouter',
   zai: 'zai',
   ollama: 'ollama',
+  copilot: 'copilot',
 };
 
 /**

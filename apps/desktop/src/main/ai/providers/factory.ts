@@ -22,6 +22,7 @@ import type { LanguageModel } from 'ai';
 
 import { MODEL_PROVIDER_MAP } from '../config/types';
 import { createOAuthProviderFetch } from './oauth-fetch';
+import { createCopilotFetch } from './copilot-auth';
 import { type ProviderConfig, SupportedProvider } from './types';
 
 // =============================================================================
@@ -156,6 +157,24 @@ function createProviderInstance(config: ProviderConfig) {
       });
     }
 
+    case SupportedProvider.Copilot: {
+      // GitHub Copilot uses OpenAI-compatible Chat Completions at api.githubcopilot.com.
+      // Auth is handled via a custom fetch interceptor that manages Copilot session tokens
+      // (short-lived tokens exchanged from a GitHub PAT/OAuth token).
+      const copilotHeaders = {
+        ...headers,
+        'Copilot-Integration-Id': 'aperant-desktop',
+        'Editor-Version': 'Aperant/1.0',
+      };
+      return createOpenAICompatible({
+        name: 'copilot',
+        apiKey: apiKey ?? 'copilot',
+        baseURL: baseURL ?? 'https://api.githubcopilot.com',
+        headers: copilotHeaders,
+        ...(apiKey ? { fetch: createCopilotFetch(apiKey) } : {}),
+      });
+    }
+
     default: {
       const _exhaustive: never = provider;
       throw new Error(`Unsupported provider: ${_exhaustive}`);
@@ -220,6 +239,13 @@ export function createProvider(options: CreateProviderOptions): LanguageModel {
       return (instance as ReturnType<typeof createOpenAI>).responses(modelId);
     }
     return (instance as ReturnType<typeof createOpenAI>).chat(modelId);
+  }
+
+  // Copilot: strip the 'copilot:' routing prefix to get the actual model ID
+  // (e.g., 'copilot:gpt-4o' → 'gpt-4o')
+  if (config.provider === SupportedProvider.Copilot && modelId.startsWith('copilot:')) {
+    const actualModelId = modelId.slice('copilot:'.length);
+    return (instance as ReturnType<typeof createAnthropic>)(actualModelId);
   }
 
   // Generic path: call provider instance as function with model ID

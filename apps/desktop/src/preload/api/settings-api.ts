@@ -49,6 +49,10 @@ export interface SettingsAPI {
   codexAuthLogin: () => Promise<{ success: boolean; data?: { accessToken: string; refreshToken: string; expiresAt: number; email?: string }; error?: string }>;
   codexAuthStatus: () => Promise<{ success: boolean; data?: { isAuthenticated: boolean; expiresAt?: number }; error?: string }>;
   codexAuthLogout: () => Promise<{ success: boolean; error?: string }>;
+
+  // GitHub Copilot Device Flow authentication
+  githubCopilotStartDeviceFlow: () => Promise<{ success: boolean; data?: { userCode: string; verificationUri: string; deviceCode: string; interval: number; expiresIn: number }; error?: string }>;
+  githubCopilotCompleteDeviceFlow: (deviceCode: string, interval: number, expiresIn: number) => Promise<{ success: boolean; data?: { accessToken: string; tokenType: string; scope: string }; error?: string }>;
 }
 
 export const createSettingsAPI = (): SettingsAPI => ({
@@ -119,4 +123,10 @@ export const createSettingsAPI = (): SettingsAPI => ({
     ipcRenderer.invoke('codex-auth-status'),
   codexAuthLogout: () =>
     ipcRenderer.invoke('codex-auth-logout'),
+
+  // GitHub Copilot Device Flow authentication
+  githubCopilotStartDeviceFlow: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_COPILOT_AUTH_START_DEVICE_FLOW),
+  githubCopilotCompleteDeviceFlow: (deviceCode: string, interval: number, expiresIn: number) =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_COPILOT_AUTH_COMPLETE_DEVICE_FLOW, deviceCode, interval, expiresIn),
 });

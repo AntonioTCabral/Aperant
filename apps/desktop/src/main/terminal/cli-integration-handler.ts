@@ -48,6 +48,7 @@ function getCLICommand(cli: SupportedCLI, customPath?: string): string {
     'opencode': 'opencode',
     'kilocode': 'kilocode',
     'codex': 'codex',
+    'github-copilot': 'gh copilot',
   };
   return commands[cli] ?? cli;
 }

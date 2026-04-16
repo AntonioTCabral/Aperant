@@ -71,6 +71,11 @@ export const ALL_AVAILABLE_MODELS: ModelOption[] = [
   { value: 'glm-4.7', label: 'GLM-4.7', provider: 'zai', description: 'Previous flagship', capabilities: { thinking: false, tools: true, vision: false, contextWindow: 128000 } },
   { value: 'glm-4.6v', label: 'GLM-4.6V', provider: 'zai', description: 'Multimodal', capabilities: { thinking: false, tools: true, vision: true, contextWindow: 128000 } },
   { value: 'glm-4.5-flash', label: 'GLM-4.5 Flash', provider: 'zai', description: 'Fast', capabilities: { thinking: false, tools: true, vision: false, contextWindow: 128000 } },
+  // GitHub Copilot (models accessible via Copilot subscription)
+  { value: 'copilot:gpt-4o', label: 'GPT-4o (Copilot)', provider: 'copilot', description: 'Flagship via Copilot', capabilities: { thinking: false, tools: true, vision: true, contextWindow: 128000 } },
+  { value: 'copilot:claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (Copilot)', provider: 'copilot', description: 'Anthropic via Copilot', capabilities: { thinking: false, tools: true, vision: true, contextWindow: 200000 } },
+  { value: 'copilot:gpt-4o-mini', label: 'GPT-4o Mini (Copilot)', provider: 'copilot', description: 'Fast via Copilot', capabilities: { thinking: false, tools: true, vision: true, contextWindow: 128000 } },
+  { value: 'copilot:o3-mini', label: 'o3-mini (Copilot)', provider: 'copilot', description: 'Reasoning via Copilot', capabilities: { thinking: true, tools: true, vision: false, contextWindow: 128000 } },
 ];
 
 // Maps model shorthand to actual Claude model IDs
@@ -322,6 +327,12 @@ export const PROVIDER_PRESET_DEFINITIONS: Partial<Record<BuiltinProvider, Record
     balanced: { primaryModel: '', primaryThinking: 'low', phaseModels: { spec: '', planning: '', coding: '', qa: '' }, phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
     quick:    { primaryModel: '', primaryThinking: 'low', phaseModels: { spec: '', planning: '', coding: '', qa: '' }, phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
   },
+  copilot: {
+    auto:     { primaryModel: 'copilot:gpt-4o',     primaryThinking: 'low', phaseModels: { spec: 'copilot:gpt-4o', planning: 'copilot:gpt-4o', coding: 'copilot:gpt-4o', qa: 'copilot:gpt-4o' },                         phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
+    complex:  { primaryModel: 'copilot:o3-mini',     primaryThinking: 'low', phaseModels: { spec: 'copilot:o3-mini', planning: 'copilot:o3-mini', coding: 'copilot:gpt-4o', qa: 'copilot:o3-mini' },                     phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
+    balanced: { primaryModel: 'copilot:gpt-4o',     primaryThinking: 'low', phaseModels: { spec: 'copilot:gpt-4o', planning: 'copilot:gpt-4o', coding: 'copilot:gpt-4o', qa: 'copilot:gpt-4o' },                         phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
+    quick:    { primaryModel: 'copilot:gpt-4o-mini', primaryThinking: 'low', phaseModels: { spec: 'copilot:gpt-4o-mini', planning: 'copilot:gpt-4o-mini', coding: 'copilot:gpt-4o-mini', qa: 'copilot:gpt-4o-mini' }, phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
+  },
 };
 
 /**
@@ -414,6 +425,7 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
     mistral: { modelId: 'mistral-large-latest', reasoning: { type: 'none' } },
     groq: { modelId: 'meta-llama/llama-4-maverick', reasoning: { type: 'none' } },
     zai: { modelId: 'glm-5', reasoning: { type: 'none' } },
+    copilot: { modelId: 'copilot:gpt-4o', reasoning: { type: 'none' } },
   },
   'glm-5': {
     zai: { modelId: 'glm-5', reasoning: { type: 'none' } },
@@ -429,11 +441,13 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
     anthropic: { modelId: 'claude-opus-4-6', reasoning: { type: 'adaptive_effort', level: 'high' } },
     openai: { modelId: 'gpt-5.2', reasoning: { type: 'reasoning_effort', level: 'high' } },
     google: { modelId: 'gemini-2.5-pro', reasoning: { type: 'thinking_toggle', level: 'high' } },
+    copilot: { modelId: 'copilot:gpt-4o', reasoning: { type: 'none' } },
   },
   'opus-4.5': {
     anthropic: { modelId: 'claude-opus-4-5-20251101', reasoning: { type: 'thinking_tokens', level: 'high' } },
     openai: { modelId: 'gpt-5.3-codex', reasoning: { type: 'reasoning_effort', level: 'high' } },
     google: { modelId: 'gemini-2.5-pro', reasoning: { type: 'thinking_toggle', level: 'high' } },
+    copilot: { modelId: 'copilot:gpt-4o', reasoning: { type: 'none' } },
   },
   'sonnet': {
     anthropic: { modelId: 'claude-sonnet-4-6', reasoning: { type: 'thinking_tokens', level: 'medium' } },
@@ -443,6 +457,7 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
     groq: { modelId: 'llama-3.3-70b-versatile', reasoning: { type: 'none' } },
     xai: { modelId: 'grok-3-mini', reasoning: { type: 'reasoning_effort', level: 'medium' } },
     zai: { modelId: 'glm-4.7', reasoning: { type: 'none' } },
+    copilot: { modelId: 'copilot:claude-3.5-sonnet', reasoning: { type: 'none' } },
   },
   'haiku': {
     anthropic: { modelId: 'claude-haiku-4-5-20251001', reasoning: { type: 'none' } },
@@ -451,6 +466,7 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
     mistral: { modelId: 'mistral-small-latest', reasoning: { type: 'none' } },
     groq: { modelId: 'llama-3.3-70b-versatile', reasoning: { type: 'none' } },
     zai: { modelId: 'glm-4.5-flash', reasoning: { type: 'none' } },
+    copilot: { modelId: 'copilot:gpt-4o-mini', reasoning: { type: 'none' } },
   },
   // ── OpenAI models ─────────────────────────────────────────────────────────
   'gpt-5.3-codex': {
@@ -509,6 +525,27 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
     xai: { modelId: 'grok-3-mini', reasoning: { type: 'reasoning_effort', level: 'medium' } },
     anthropic: { modelId: 'claude-sonnet-4-6', reasoning: { type: 'thinking_tokens', level: 'medium' } },
     openai: { modelId: 'o4-mini', reasoning: { type: 'reasoning_effort', level: 'medium' } },
+  },
+  // ── GitHub Copilot models ─────────────────────────────────────────────────
+  'copilot:gpt-4o': {
+    copilot: { modelId: 'copilot:gpt-4o', reasoning: { type: 'none' } },
+    openai: { modelId: 'gpt-5.3-codex', reasoning: { type: 'reasoning_effort', level: 'high' } },
+    anthropic: { modelId: 'claude-opus-4-6', reasoning: { type: 'adaptive_effort', level: 'high' } },
+  },
+  'copilot:claude-3.5-sonnet': {
+    copilot: { modelId: 'copilot:claude-3.5-sonnet', reasoning: { type: 'none' } },
+    anthropic: { modelId: 'claude-sonnet-4-6', reasoning: { type: 'thinking_tokens', level: 'medium' } },
+    openai: { modelId: 'gpt-5.2-codex', reasoning: { type: 'reasoning_effort', level: 'medium' } },
+  },
+  'copilot:gpt-4o-mini': {
+    copilot: { modelId: 'copilot:gpt-4o-mini', reasoning: { type: 'none' } },
+    openai: { modelId: 'gpt-5.1-codex-mini', reasoning: { type: 'reasoning_effort', level: 'low' } },
+    anthropic: { modelId: 'claude-haiku-4-5-20251001', reasoning: { type: 'none' } },
+  },
+  'copilot:o3-mini': {
+    copilot: { modelId: 'copilot:o3-mini', reasoning: { type: 'reasoning_effort', level: 'medium' } },
+    openai: { modelId: 'o4-mini', reasoning: { type: 'reasoning_effort', level: 'medium' } },
+    anthropic: { modelId: 'claude-sonnet-4-6', reasoning: { type: 'thinking_tokens', level: 'medium' } },
   },
 };
 

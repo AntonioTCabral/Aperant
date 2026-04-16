@@ -111,6 +111,11 @@ export function transformThinkingConfig(
       };
     }
 
+    case 'copilot':
+      // Copilot proxies multiple models; thinking support depends on the underlying model.
+      // Since reasoning params aren't exposed through the Copilot Chat API, return empty config.
+      return {};
+
     default:
       // Providers without thinking support return empty config
       return {};
@@ -148,8 +153,9 @@ export function normalizeToolId(provider: SupportedProvider, toolId: string): st
     }
 
     case 'openai':
-    case 'azure': {
-      // Sanitize and truncate to max length
+    case 'azure':
+    case 'copilot': {
+      // Sanitize and truncate to max length (OpenAI-compatible format)
       const sanitized = toolId.replace(/[^a-zA-Z0-9_-]/g, '_');
       return sanitized.length > OPENAI_TOOL_ID_MAX_LENGTH
         ? sanitized.slice(0, OPENAI_TOOL_ID_MAX_LENGTH)

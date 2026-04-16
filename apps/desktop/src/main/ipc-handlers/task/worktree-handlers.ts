@@ -936,6 +936,15 @@ const CLI_DETECTION: Partial<Record<SupportedCLI, { name: string; paths: Record<
       linux: []
     },
     commands: { darwin: 'codex', win32: 'codex.cmd', linux: 'codex' }
+  },
+  'github-copilot': {
+    name: 'GitHub Copilot',
+    paths: {
+      darwin: [],
+      win32: [],
+      linux: []
+    },
+    commands: { darwin: 'gh', win32: 'gh.exe', linux: 'gh' }
   }
 };
 

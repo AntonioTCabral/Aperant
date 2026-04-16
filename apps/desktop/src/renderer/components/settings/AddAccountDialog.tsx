@@ -68,6 +68,15 @@ export function AddAccountDialog({
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [showFallbackTerminal, setShowFallbackTerminal] = useState(false);
 
+  // GitHub Copilot Device Flow state
+  const [deviceFlowData, setDeviceFlowData] = useState<{
+    userCode: string;
+    verificationUri: string;
+    deviceCode: string;
+    interval: number;
+    expiresIn: number;
+  } | null>(null);
+
   // Tracks whether the account was auto-saved after OAuth success
   const [accountSaved, setAccountSaved] = useState(false);
 
@@ -107,6 +116,7 @@ export function AddAccountDialog({
       setShowFallbackTerminal(false);
       setFallbackTerminalId(null);
       setFallbackConfigDir(null);
+      setDeviceFlowData(null);
     }
   }, [open, editAccount, provider, billingModelOverride]);
 
@@ -124,8 +134,9 @@ export function AddAccountDialog({
     return false;
   }, [toast, t]);
 
-  const isOAuthOnly = (provider === 'anthropic' || provider === 'openai') && authType === 'oauth';
+  const isOAuthOnly = (provider === 'anthropic' || provider === 'openai' || provider === 'copilot') && authType === 'oauth';
   const isCodexOAuth = provider === 'openai' && authType === 'oauth';
+  const isCopilotOAuth = provider === 'copilot' && authType === 'oauth';
 
   const refreshUsageData = useCallback(async () => {
     try {
@@ -138,7 +149,7 @@ export function AddAccountDialog({
   // Subscribe to Anthropic OAuth progress events (not used for Codex/OpenAI)
   useEffect(() => {
     if (!open || oauthStatus === 'idle' || oauthStatus === 'success') return;
-    if (isCodexOAuth) return;
+    if (isCodexOAuth || isCopilotOAuth) return;
 
     const unsubscribe = window.electronAPI.onClaudeAuthLoginProgress((data) => {
       switch (data.status) {
@@ -160,7 +171,7 @@ export function AddAccountDialog({
     });
 
     return unsubscribe;
-  }, [open, oauthStatus, isCodexOAuth]);
+  }, [open, oauthStatus, isCodexOAuth, isCopilotOAuth]);
 
   const needsApiKey = provider !== 'ollama' && authType === 'api-key';
   const needsBaseUrl = provider === 'ollama' || provider === 'azure' || provider === 'openai-compatible' || provider === 'zai' || (provider === 'anthropic' && authType === 'api-key');
@@ -169,7 +180,7 @@ export function AddAccountDialog({
 
   // Auto-save for Anthropic OAuth on success (mirrors the Codex auto-save behavior)
   useEffect(() => {
-    if (oauthStatus !== 'success' || isCodexOAuth || accountSaved || !name.trim()) return;
+    if (oauthStatus !== 'success' || isCodexOAuth || isCopilotOAuth || accountSaved || !name.trim()) return;
 
     const autoSave = async () => {
       let result: {
@@ -213,7 +224,7 @@ export function AddAccountDialog({
       }
     };
     autoSave();
-  }, [oauthStatus, isCodexOAuth, accountSaved, name, provider, oauthProfileId, isEditing, editAccount, oauthEmail, addProviderAccount, updateProviderAccount, handleDuplicateEmailError, toast, t, refreshUsageData]);
+  }, [oauthStatus, isCodexOAuth, isCopilotOAuth, accountSaved, name, provider, oauthProfileId, isEditing, editAccount, oauthEmail, addProviderAccount, updateProviderAccount, handleDuplicateEmailError, toast, t, refreshUsageData]);
 
   const canSave = () => {
     if (!name.trim()) return false;
@@ -223,13 +234,17 @@ export function AddAccountDialog({
     return true;
   };
 
-  const oauthAuthLabel = isCodexOAuth
+  const oauthAuthLabel = isCopilotOAuth
     ? isEditing
-      ? t('providers.dialog.codexReauthenticate')
-      : t('providers.dialog.codexAuthenticate')
-    : isEditing
-      ? t('providers.dialog.oauthReauthenticate')
-      : t('providers.dialog.oauthAuthenticate');
+      ? 'Re-authenticate with GitHub'
+      : 'Authenticate with GitHub'
+    : isCodexOAuth
+      ? isEditing
+        ? t('providers.dialog.codexReauthenticate')
+        : t('providers.dialog.codexAuthenticate')
+      : isEditing
+        ? t('providers.dialog.oauthReauthenticate')
+        : t('providers.dialog.oauthAuthenticate');
 
   const handleAuthenticate = useCallback(async () => {
     if (!name.trim()) {
@@ -242,6 +257,52 @@ export function AddAccountDialog({
 
     setOauthStatus('authenticating');
     setOauthError(null);
+
+    // Handle GitHub Copilot Device Flow OAuth
+    if (isCopilotOAuth) {
+      try {
+        setOauthStatus('authenticating');
+        setOauthError(null);
+        setDeviceFlowData(null);
+
+        // Start Device Flow
+        const initResult = await window.electronAPI.githubCopilotStartDeviceFlow();
+        if (!initResult?.success || !initResult.data) {
+          setOauthStatus('error');
+          setOauthError(initResult?.error ?? 'Failed to start Device Flow');
+          return;
+        }
+
+        setDeviceFlowData(initResult.data);
+        setOauthStatus('waiting');
+
+        // Poll for completion (blocks until user authorizes or timeout)
+        const result = await window.electronAPI.githubCopilotCompleteDeviceFlow(
+          initResult.data.deviceCode,
+          initResult.data.interval,
+          initResult.data.expiresIn
+        );
+
+        if (!result?.success || !result.data) {
+          setOauthStatus('error');
+          setOauthError(result?.error ?? 'Authentication failed');
+          setDeviceFlowData(null);
+          return;
+        }
+
+        // Store the GitHub token as the API key for this account
+        setApiKey(result.data.accessToken);
+        setOauthStatus('success');
+        setOauthEmail('github.com');
+        setDeviceFlowData(null);
+
+      } catch (err) {
+        setOauthStatus('error');
+        setOauthError(err instanceof Error ? err.message : 'Unexpected error');
+        setDeviceFlowData(null);
+      }
+      return;
+    }
 
     // Handle OpenAI Codex OAuth flow separately
     if (isCodexOAuth) {
@@ -344,7 +405,7 @@ export function AddAccountDialog({
       setOauthStatus('error');
       setOauthError(err instanceof Error ? err.message : 'Unexpected error');
     }
-  }, [name, t, toast, isCodexOAuth, isEditing, editAccount, provider, addProviderAccount, updateProviderAccount, handleDuplicateEmailError, onOpenChange, refreshUsageData]);
+  }, [name, t, toast, isCodexOAuth, isCopilotOAuth, isEditing, editAccount, provider, addProviderAccount, updateProviderAccount, handleDuplicateEmailError, onOpenChange, refreshUsageData]);
 
   const handleFallbackTerminal = useCallback(async () => {
     if (!name.trim()) {
@@ -409,10 +470,10 @@ export function AddAccountDialog({
         name: name.trim(),
         authType,
         billingModel: billingModelOverride ?? (authType === 'oauth' ? 'subscription' as const : 'pay-per-use' as const),
-        apiKey: needsApiKey ? apiKey.trim() : undefined,
+        apiKey: needsApiKey ? apiKey.trim() : isCopilotOAuth && apiKey.trim() ? apiKey.trim() : undefined,
         baseUrl: needsBaseUrl && baseUrl.trim() ? baseUrl.trim() : undefined,
         region: needsRegion ? region : undefined,
-        claudeProfileId: isOAuthOnly && !isCodexOAuth ? oauthProfileId ?? undefined : undefined,
+        claudeProfileId: isOAuthOnly && !isCodexOAuth && !isCopilotOAuth ? oauthProfileId ?? undefined : undefined,
         email: isOAuthOnly ? (oauthEmail ?? (isEditing ? editAccount?.email : undefined)) : undefined,
         customModels: provider === 'openai-compatible' && customModels.length > 0 ? customModels : undefined,
       };
@@ -475,15 +536,17 @@ export function AddAccountDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {isCodexOAuth
-              ? t('providers.dialog.codexOAuthDescription')
-              : isOAuthOnly
-                ? t('providers.dialog.oauthDescription')
-                : provider === 'zai' && billingModelOverride === 'subscription'
-                  ? t('providers.dialog.zaiCodingPlanDescription')
-                  : provider === 'zai'
-                    ? t('providers.dialog.zaiUsageBasedDescription')
-                    : t('providers.dialog.apiKeyDescription')}
+            {isCopilotOAuth
+              ? 'Authenticate with GitHub to use Copilot models via Device Flow.'
+              : isCodexOAuth
+                ? t('providers.dialog.codexOAuthDescription')
+                : isOAuthOnly
+                  ? t('providers.dialog.oauthDescription')
+                  : provider === 'zai' && billingModelOverride === 'subscription'
+                    ? t('providers.dialog.zaiCodingPlanDescription')
+                    : provider === 'zai'
+                      ? t('providers.dialog.zaiUsageBasedDescription')
+                      : t('providers.dialog.apiKeyDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -521,7 +584,35 @@ export function AddAccountDialog({
               </div>
             )}
 
-            {oauthStatus === 'waiting' && (
+            {oauthStatus === 'waiting' && isCopilotOAuth && deviceFlowData && (
+              <div className="space-y-3">
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Visit GitHub to authorize:
+                  </p>
+                  <a
+                    href={deviceFlowData.verificationUri}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary underline hover:no-underline font-medium"
+                  >
+                    {deviceFlowData.verificationUri}
+                  </a>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Code:</span>
+                    <code className="text-lg font-bold font-mono tracking-widest bg-muted/50 px-3 py-1 rounded">
+                      {deviceFlowData.userCode}
+                    </code>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span>Waiting for authorization...</span>
+                </div>
+              </div>
+            )}
+
+            {oauthStatus === 'waiting' && !isCopilotOAuth && (
               <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border p-3 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span>{isCodexOAuth ? t('providers.dialog.codexWaiting') : t('providers.dialog.oauthWaiting')}</span>
@@ -531,7 +622,7 @@ export function AddAccountDialog({
             {oauthStatus === 'success' && (
               <div className="flex items-center gap-2 rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>{isCodexOAuth ? t('providers.dialog.codexSuccess') : t('providers.dialog.oauthSuccess', { email: oauthEmail ?? 'Unknown' })}</span>
+                <span>{isCopilotOAuth ? 'GitHub Copilot authenticated successfully' : isCodexOAuth ? t('providers.dialog.codexSuccess') : t('providers.dialog.oauthSuccess', { email: oauthEmail ?? 'Unknown' })}</span>
               </div>
             )}
 
@@ -539,7 +630,7 @@ export function AddAccountDialog({
               <div className="space-y-2">
                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{isCodexOAuth ? t('providers.dialog.codexError', { error: oauthError ?? 'Unknown' }) : t('providers.dialog.oauthError', { error: oauthError ?? 'Unknown' })}</span>
+                  <span>{isCopilotOAuth ? `Authentication failed: ${oauthError ?? 'Unknown'}` : isCodexOAuth ? t('providers.dialog.codexError', { error: oauthError ?? 'Unknown' }) : t('providers.dialog.oauthError', { error: oauthError ?? 'Unknown' })}</span>
                 </div>
                 <Button
                   variant="outline"
@@ -553,7 +644,7 @@ export function AddAccountDialog({
             )}
 
             {/* Fallback Terminal Link (Anthropic OAuth only) */}
-            {!isCodexOAuth && !showFallbackTerminal && oauthStatus !== 'success' && !isAuthInProgress && (
+            {!isCodexOAuth && !isCopilotOAuth && !showFallbackTerminal && oauthStatus !== 'success' && !isAuthInProgress && (
               <button
                 type="button"
                 onClick={handleFallbackTerminal}
@@ -566,7 +657,7 @@ export function AddAccountDialog({
             )}
 
             {/* Fallback AuthTerminal (Anthropic OAuth only) */}
-            {!isCodexOAuth && showFallbackTerminal && fallbackTerminalId && fallbackConfigDir && (
+            {!isCodexOAuth && !isCopilotOAuth && showFallbackTerminal && fallbackTerminalId && fallbackConfigDir && (
               <FallbackTerminalWrapper
                 terminalId={fallbackTerminalId}
                 configDir={fallbackConfigDir}

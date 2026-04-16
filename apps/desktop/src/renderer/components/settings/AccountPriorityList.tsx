@@ -84,6 +84,7 @@ const PROVIDER_BADGE_COLORS: Record<string, string> = {
   'openai-compatible': 'bg-gray-500/10 text-gray-500 border-gray-500/20',
   'zai': 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
   'openrouter': 'bg-violet-500/10 text-violet-500 border-violet-500/20',
+  'copilot': 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20',
 };
 
 const getProviderDisplayName = (provider?: string): string => {

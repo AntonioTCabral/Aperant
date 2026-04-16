@@ -592,5 +592,9 @@ export const IPC_CHANNELS = {
   // Queue routing events (main -> renderer)
   QUEUE_PROFILE_SWAPPED: 'queue:profileSwapped',      // Task switched to different profile
   QUEUE_SESSION_CAPTURED: 'queue:sessionCaptured',    // Session ID captured from running task
-  QUEUE_BLOCKED_NO_PROFILES: 'queue:blockedNoProfiles' // All profiles unavailable
+  QUEUE_BLOCKED_NO_PROFILES: 'queue:blockedNoProfiles', // All profiles unavailable
+
+  // GitHub Copilot Device Flow authentication
+  GITHUB_COPILOT_AUTH_START_DEVICE_FLOW: 'github-copilot-auth-start-device-flow',
+  GITHUB_COPILOT_AUTH_COMPLETE_DEVICE_FLOW: 'github-copilot-auth-complete-device-flow'
 } as const;

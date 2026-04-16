@@ -88,6 +88,7 @@ const CLI_NAMES: Partial<Record<SupportedCLI, string>> = {
   opencode: 'OpenCode',
   kilocode: 'Kilo Code CLI',
   codex: 'Codex CLI',
+  'github-copilot': 'GitHub Copilot',
   custom: 'Custom...'
 };
 

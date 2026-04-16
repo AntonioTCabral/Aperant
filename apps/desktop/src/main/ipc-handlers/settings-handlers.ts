@@ -1120,6 +1120,7 @@ export function registerSettingsHandlers(
           XAI_API_KEY: 'xai',
           AWS_ACCESS_KEY_ID: 'amazon-bedrock',
           AZURE_OPENAI_API_KEY: 'azure',
+          GITHUB_TOKEN: 'copilot',
         };
         for (const [envVar, provider] of Object.entries(envVarMapping)) {
           if (process.env[envVar]) {

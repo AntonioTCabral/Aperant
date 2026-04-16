@@ -7,7 +7,7 @@ export type CredentialSource = 'oauth' | 'api-key' | 'env' | 'keychain';
 export type BuiltinProvider =
   | 'anthropic' | 'openai' | 'google' | 'amazon-bedrock' | 'azure'
   | 'mistral' | 'groq' | 'xai' | 'openrouter' | 'zai'
-  | 'ollama' | 'openai-compatible';
+  | 'ollama' | 'openai-compatible' | 'copilot';
 
 export type BillingModel = 'subscription' | 'pay-per-use';
 
