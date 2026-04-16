@@ -22,7 +22,6 @@ import type { LanguageModel } from 'ai';
 
 import { MODEL_PROVIDER_MAP } from '../config/types';
 import { createOAuthProviderFetch } from './oauth-fetch';
-import { createCopilotFetch } from './copilot-auth';
 import { type ProviderConfig, SupportedProvider } from './types';
 
 // =============================================================================
@@ -159,19 +158,16 @@ function createProviderInstance(config: ProviderConfig) {
 
     case SupportedProvider.Copilot: {
       // GitHub Copilot uses OpenAI-compatible Chat Completions at api.githubcopilot.com.
-      // Auth is handled via a custom fetch interceptor that manages Copilot session tokens
-      // (short-lived tokens exchanged from a GitHub PAT/OAuth token).
-      const copilotHeaders = {
-        ...headers,
-        'Copilot-Integration-Id': 'aperant-desktop',
-        'Editor-Version': 'Aperant/1.0',
-      };
-      return createOpenAICompatible({
-        name: 'copilot',
-        apiKey: apiKey ?? 'copilot',
+      // The auth resolver exchanges the GitHub PAT for a short-lived Copilot session token
+      // BEFORE provider creation, so apiKey here is already the session token (tid=...).
+      return createOpenAI({
+        apiKey: apiKey ?? '',
         baseURL: baseURL ?? 'https://api.githubcopilot.com',
-        headers: copilotHeaders,
-        ...(apiKey ? { fetch: createCopilotFetch(apiKey) } : {}),
+        headers: {
+          ...headers,
+          'Copilot-Integration-Id': 'aperant-desktop',
+          'Editor-Version': 'Aperant/1.0',
+        },
       });
     }
 
@@ -241,11 +237,11 @@ export function createProvider(options: CreateProviderOptions): LanguageModel {
     return (instance as ReturnType<typeof createOpenAI>).chat(modelId);
   }
 
-  // Copilot: strip the 'copilot:' routing prefix to get the actual model ID
-  // (e.g., 'copilot:gpt-4o' → 'gpt-4o')
-  if (config.provider === SupportedProvider.Copilot && modelId.startsWith('copilot:')) {
-    const actualModelId = modelId.slice('copilot:'.length);
-    return (instance as ReturnType<typeof createAnthropic>)(actualModelId);
+  // Copilot: strip the 'copilot:' routing prefix and use .chat() since it's OpenAI-based
+  // (e.g., 'copilot:claude-opus-4-6' → 'claude-opus-4-6')
+  if (config.provider === SupportedProvider.Copilot) {
+    const actualModelId = modelId.startsWith('copilot:') ? modelId.slice('copilot:'.length) : modelId;
+    return (instance as ReturnType<typeof createOpenAI>).chat(actualModelId);
   }
 
   // Generic path: call provider instance as function with model ID

@@ -102,9 +102,8 @@ function createProviderSDKInstance(
     }
 
     case SupportedProvider.Copilot:
-      return createOpenAICompatible({
-        name: 'copilot',
-        apiKey: apiKey ?? 'copilot',
+      return createOpenAI({
+        apiKey: apiKey ?? 'copilot-placeholder',
         baseURL: baseURL ?? 'https://api.githubcopilot.com',
         headers: {
           ...headers,

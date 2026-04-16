@@ -175,7 +175,7 @@ export async function exchangeForCopilotToken(githubToken: string): Promise<Copi
  * 2. Injects Authorization header with session token
  *
  * @param githubToken - GitHub Personal Access Token or OAuth access token
- * @returns Custom fetch function compatible with @ai-sdk/openai-compatible
+ * @returns Custom fetch function compatible with @ai-sdk/openai
  */
 export function createCopilotFetch(githubToken: string): typeof globalThis.fetch {
   const tokenManager = new CopilotTokenManager(githubToken);
@@ -183,10 +183,23 @@ export function createCopilotFetch(githubToken: string): typeof globalThis.fetch
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const sessionToken = await tokenManager.getToken();
 
-    const headers = new Headers(init?.headers);
+    // Build headers from scratch, copying everything except Authorization
+    // (which the SDK sets to the raw GitHub PAT — we need the Copilot session token instead)
+    const originalHeaders = new Headers(init?.headers);
+    const headers = new Headers();
+
+    // Copy all non-auth headers from the SDK's request
+    originalHeaders.forEach((value, key) => {
+      if (key.toLowerCase() !== 'authorization') {
+        headers.set(key, value);
+      }
+    });
+
+    // Set the correct Copilot session token
     headers.set('Authorization', `Bearer ${sessionToken}`);
 
-    debugLog('Copilot fetch', { url: typeof input === 'string' ? input : input.toString() });
+    const url = typeof input === 'string' ? input : input.toString();
+    debugLog('Copilot fetch', { url, tokenLength: sessionToken.length });
 
     return globalThis.fetch(input, {
       ...init,

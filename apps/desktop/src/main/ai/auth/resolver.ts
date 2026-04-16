@@ -534,12 +534,38 @@ async function resolveCredentialsForAccount(
     return null;
   }
 
+  // GitHub Copilot OAuth — exchange GitHub token for Copilot session token
+  if (account.provider === 'copilot' && account.authType === 'oauth' && account.apiKey) {
+    try {
+      const { exchangeForCopilotToken } = await import('../providers/copilot-auth');
+      const sessionToken = await exchangeForCopilotToken(account.apiKey);
+      return {
+        apiKey: sessionToken.token,
+        source: 'profile-api-key',
+        baseURL: account.baseUrl,
+      };
+    } catch { /* fall through to API key path */ }
+  }
+
   // API key accounts
   if (account.authType === 'api-key' && account.apiKey) {
     // Z.AI: route to correct endpoint based on billing model
     const baseURL = account.provider === 'zai'
       ? resolveZaiBaseUrl(account)
       : account.baseUrl;
+
+    // Copilot API key: exchange GitHub PAT for Copilot session token
+    if (account.provider === 'copilot') {
+      try {
+        const { exchangeForCopilotToken } = await import('../providers/copilot-auth');
+        const sessionToken = await exchangeForCopilotToken(account.apiKey);
+        return {
+          apiKey: sessionToken.token,
+          source: 'profile-api-key',
+          baseURL,
+        };
+      } catch { /* fall through to raw API key */ }
+    }
 
     return {
       apiKey: account.apiKey,
