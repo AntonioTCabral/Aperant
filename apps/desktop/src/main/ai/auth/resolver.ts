@@ -534,17 +534,23 @@ async function resolveCredentialsForAccount(
     return null;
   }
 
-  // GitHub Copilot OAuth — exchange GitHub token for Copilot session token
-  if (account.provider === 'copilot' && account.authType === 'oauth' && account.apiKey) {
+  // GitHub Copilot — exchange GitHub token for Copilot session token
+  // Works for both 'oauth' (gh CLI) and 'api-key' (manual PAT) auth types
+  if (account.provider === 'copilot' && account.apiKey) {
     try {
+      console.error('[CopilotAuth] Exchanging GitHub token for Copilot session token...');
       const { exchangeForCopilotToken } = await import('../providers/copilot-auth');
       const sessionToken = await exchangeForCopilotToken(account.apiKey);
+      console.error('[CopilotAuth] Session token obtained, length:', sessionToken.token.length);
       return {
         apiKey: sessionToken.token,
         source: 'profile-api-key',
         baseURL: account.baseUrl,
       };
-    } catch { /* fall through to API key path */ }
+    } catch (err) {
+      console.error('[CopilotAuth] Token exchange failed:', err instanceof Error ? err.message : err);
+      return null;
+    }
   }
 
   // API key accounts
@@ -553,19 +559,6 @@ async function resolveCredentialsForAccount(
     const baseURL = account.provider === 'zai'
       ? resolveZaiBaseUrl(account)
       : account.baseUrl;
-
-    // Copilot API key: exchange GitHub PAT for Copilot session token
-    if (account.provider === 'copilot') {
-      try {
-        const { exchangeForCopilotToken } = await import('../providers/copilot-auth');
-        const sessionToken = await exchangeForCopilotToken(account.apiKey);
-        return {
-          apiKey: sessionToken.token,
-          source: 'profile-api-key',
-          baseURL,
-        };
-      } catch { /* fall through to raw API key */ }
-    }
 
     return {
       apiKey: account.apiKey,
