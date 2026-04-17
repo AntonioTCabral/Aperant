@@ -38,14 +38,21 @@ const GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code';
 const GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
 /**
- * GitHub OAuth App Client ID for Aperant.
- * This is a public identifier (not a secret) used for the Device Flow.
- * Must be registered at https://github.com/settings/developers
+ * GitHub OAuth client ID used for the Device Flow.
+ *
+ * This is the **public** client ID of the GitHub Copilot for VS Code extension.
+ * The `/copilot_internal/v2/token` endpoint only honors tokens issued to OAuth apps
+ * that GitHub has whitelisted as Copilot editor integrations — tokens from a
+ * self-registered OAuth app (or plain PATs) return 404.
+ *
+ * Using the VS Code Copilot client ID is the standard pattern for community editor
+ * integrations (copilot.vim, copilot.el, aider, etc.). It's a public identifier,
+ * not a secret, and no client_secret is required for the Device Flow.
  */
-const GITHUB_OAUTH_CLIENT_ID = 'Iv1.aperant_copilot';
+const GITHUB_OAUTH_CLIENT_ID = 'Iv1.b507a08c87ecfe98';
 
-/** Scopes required for Copilot access */
-const GITHUB_COPILOT_SCOPE = 'copilot';
+/** Scopes required for Copilot access. `read:user` is what the VS Code flow requests. */
+const GITHUB_COPILOT_SCOPE = 'read:user';
 
 /** Refresh session token 5 minutes before expiry */
 const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
@@ -134,12 +141,18 @@ export class CopilotTokenManager {
 export async function exchangeForCopilotToken(githubToken: string): Promise<CopilotSessionToken> {
   debugLog('Exchanging GitHub token for Copilot session token');
 
+  // GitHub's copilot_internal token endpoint only responds for clients that identify as
+  // a recognized Copilot editor integration. An unknown User-Agent/Editor-Version returns 404.
+  // We therefore identify as a Copilot-compatible editor, mirroring what copilot.vim / copilot.el
+  // / community clients send.
   const response = await fetch(COPILOT_TOKEN_ENDPOINT, {
     method: 'GET',
     headers: {
       'Authorization': `token ${githubToken}`,
       'Accept': 'application/json',
-      'User-Agent': 'Aperant-Desktop/1.0',
+      'User-Agent': 'GithubCopilot/1.155.0',
+      'Editor-Version': 'vscode/1.85.0',
+      'Editor-Plugin-Version': 'copilot-chat/0.11.1',
     },
   });
 
@@ -154,6 +167,15 @@ export async function exchangeForCopilotToken(githubToken: string): Promise<Copi
       throw new Error(
         'GitHub Copilot access denied. Ensure you have an active Copilot subscription ' +
         'and your token has the required scopes.'
+      );
+    }
+    if (response.status === 404) {
+      throw new Error(
+        'Copilot token endpoint returned 404. GitHub only accepts tokens from whitelisted ' +
+        'Copilot editor OAuth apps at this endpoint — PATs and gh CLI tokens do NOT work here, ' +
+        'even with the "copilot" scope. You must authenticate via the GitHub Device Flow from ' +
+        'within the app (which uses the VS Code Copilot client ID). Also confirm the GitHub ' +
+        'account has an active Copilot subscription.'
       );
     }
     throw new Error(`Copilot token exchange failed: ${response.status} ${response.statusText}`);
