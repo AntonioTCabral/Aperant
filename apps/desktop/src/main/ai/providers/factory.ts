@@ -157,17 +157,13 @@ function createProviderInstance(config: ProviderConfig) {
     }
 
     case SupportedProvider.Copilot: {
-      // GitHub Copilot uses OpenAI-compatible Chat Completions at api.githubcopilot.com.
-      // The auth resolver exchanges the GitHub PAT for a short-lived Copilot session token
-      // BEFORE provider creation, so apiKey here is already the session token (tid=...).
+      // GitHub Models API — official public API for GitHub-hosted AI models.
+      // Accepts GitHub tokens directly (PAT or gh CLI OAuth), no token exchange needed.
+      // OpenAI-compatible chat/completions format.
       return createOpenAI({
         apiKey: apiKey ?? '',
-        baseURL: baseURL ?? 'https://api.githubcopilot.com',
-        headers: {
-          ...headers,
-          'Copilot-Integration-Id': 'aperant-desktop',
-          'Editor-Version': 'Aperant/1.0',
-        },
+        baseURL: baseURL ?? 'https://models.inference.ai.azure.com',
+        headers,
       });
     }
 

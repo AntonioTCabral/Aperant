@@ -534,23 +534,14 @@ async function resolveCredentialsForAccount(
     return null;
   }
 
-  // GitHub Copilot — exchange GitHub token for Copilot session token
-  // Works for both 'oauth' (gh CLI) and 'api-key' (manual PAT) auth types
+  // GitHub Copilot — GitHub token (PAT or gh CLI OAuth) goes directly to GitHub Models API.
+  // No token exchange needed — the API accepts GitHub tokens natively.
   if (account.provider === 'copilot' && account.apiKey) {
-    try {
-      console.error('[CopilotAuth] Exchanging GitHub token for Copilot session token...');
-      const { exchangeForCopilotToken } = await import('../providers/copilot-auth');
-      const sessionToken = await exchangeForCopilotToken(account.apiKey);
-      console.error('[CopilotAuth] Session token obtained, length:', sessionToken.token.length);
-      return {
-        apiKey: sessionToken.token,
-        source: 'profile-api-key',
-        baseURL: account.baseUrl,
-      };
-    } catch (err) {
-      console.error('[CopilotAuth] Token exchange failed:', err instanceof Error ? err.message : err);
-      return null;
-    }
+    return {
+      apiKey: account.apiKey,
+      source: account.authType === 'oauth' ? 'profile-oauth' : 'profile-api-key',
+      baseURL: account.baseUrl,
+    };
   }
 
   // API key accounts

@@ -103,13 +103,9 @@ function createProviderSDKInstance(
 
     case SupportedProvider.Copilot:
       return createOpenAI({
-        apiKey: apiKey ?? 'copilot-placeholder',
-        baseURL: baseURL ?? 'https://api.githubcopilot.com',
-        headers: {
-          ...headers,
-          'Copilot-Integration-Id': 'aperant-desktop',
-          'Editor-Version': 'Aperant/1.0',
-        },
+        apiKey: apiKey ?? '',
+        baseURL: baseURL ?? 'https://models.inference.ai.azure.com',
+        headers,
       });
 
     default: {
