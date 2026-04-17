@@ -183,7 +183,54 @@ export async function exchangeForCopilotToken(githubToken: string): Promise<Copi
 
   const data = (await response.json()) as CopilotSessionToken;
   debugLog('Copilot session token obtained', { expires_at: data.expires_at });
+
+  // One-shot diagnostic: list the models this account can actually call. Run fire-and-forget
+  // so it can't block or fail the auth flow. Helps operators match the model catalog against
+  // Copilot's current naming.
+  void logAvailableCopilotModels(data.token);
+
   return data;
+}
+
+/** Tracks whether we've already logged the models list for the current process. */
+let modelsListLogged = false;
+
+/**
+ * Fetch and log the list of models the Copilot Chat API currently exposes for
+ * this session. GitHub periodically renames / retires models, so this is the
+ * only reliable source of truth for what IDs to put in the model catalog.
+ */
+async function logAvailableCopilotModels(sessionToken: string): Promise<void> {
+  if (modelsListLogged) return;
+  modelsListLogged = true;
+
+  try {
+    const res = await fetch('https://api.githubcopilot.com/models', {
+      headers: {
+        'Authorization': `Bearer ${sessionToken}`,
+        'Accept': 'application/json',
+        'Copilot-Integration-Id': 'vscode-chat',
+        'Editor-Version': 'vscode/1.85.0',
+        'Editor-Plugin-Version': 'copilot-chat/0.11.1',
+        'User-Agent': 'GithubCopilot/1.155.0',
+      },
+    });
+    if (!res.ok) {
+      console.log('[CopilotAuth] /models request failed:', res.status, res.statusText);
+      return;
+    }
+    const body = (await res.json()) as { data?: Array<{ id: string; name?: string; vendor?: string; model_picker_enabled?: boolean }> };
+    const rows = (body.data ?? []).map(m => ({
+      id: m.id,
+      name: m.name,
+      vendor: m.vendor,
+      picker: m.model_picker_enabled,
+    }));
+    console.log('[CopilotAuth] Copilot models available for this account:');
+    console.table(rows);
+  } catch (err) {
+    console.log('[CopilotAuth] Failed to list Copilot models:', err instanceof Error ? err.message : err);
+  }
 }
 
 // =============================================================================

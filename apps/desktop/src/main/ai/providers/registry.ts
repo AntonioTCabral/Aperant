@@ -107,8 +107,9 @@ function createProviderSDKInstance(
         baseURL: baseURL ?? 'https://api.githubcopilot.com',
         headers: {
           ...headers,
-          'Copilot-Integration-Id': 'aperant-desktop',
-          'Editor-Version': 'Aperant/1.0',
+          'Copilot-Integration-Id': 'vscode-chat',
+          'Editor-Version': 'vscode/1.85.0',
+          'Editor-Plugin-Version': 'copilot-chat/0.11.1',
         },
       });
 
