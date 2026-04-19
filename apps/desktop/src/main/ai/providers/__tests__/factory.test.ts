@@ -103,6 +103,15 @@ describe('createProvider', () => {
     expect(result.provider).toBe('openai-chat');
   });
 
+  it('normalizes Copilot Claude aliases to dotted model IDs', () => {
+    const result = createProvider({
+      config: { provider: SupportedProvider.Copilot, apiKey: 'test-key' },
+      modelId: 'copilot:claude-sonnet-4-6',
+    }) as any;
+    expect(result.provider).toBe('openai-chat');
+    expect(result.modelId).toBe('claude-sonnet-4.6');
+  });
+
   it('uses .chat() with deploymentName for Azure provider', () => {
     const result = createProvider({
       config: { provider: SupportedProvider.Azure, apiKey: 'test-key', deploymentName: 'my-deploy' },

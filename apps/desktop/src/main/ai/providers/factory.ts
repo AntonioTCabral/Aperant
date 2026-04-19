@@ -190,6 +190,21 @@ function isCodexModel(modelId: string): boolean {
   return modelId.includes('codex');
 }
 
+// Copilot's /models endpoint exposes Claude versions with dots (e.g. 4.6),
+// while our internal catalog historically used hyphenated aliases (4-6).
+const COPILOT_MODEL_ID_ALIASES: Record<string, string> = {
+  'claude-sonnet-4-6': 'claude-sonnet-4.6',
+  'claude-opus-4-6': 'claude-opus-4.6',
+  'claude-sonnet-4-5': 'claude-sonnet-4.5',
+  'claude-opus-4-5': 'claude-opus-4.5',
+  'claude-haiku-4-5': 'claude-haiku-4.5',
+};
+
+function normalizeCopilotModelId(modelId: string): string {
+  const withoutPrefix = modelId.startsWith('copilot:') ? modelId.slice('copilot:'.length) : modelId;
+  return COPILOT_MODEL_ID_ALIASES[withoutPrefix] ?? withoutPrefix;
+}
+
 // =============================================================================
 // Model Creation Options
 // =============================================================================
@@ -237,10 +252,10 @@ export function createProvider(options: CreateProviderOptions): LanguageModel {
     return (instance as ReturnType<typeof createOpenAI>).chat(modelId);
   }
 
-  // Copilot: strip the 'copilot:' routing prefix and use .chat() since it's OpenAI-based
-  // (e.g., 'copilot:claude-opus-4-6' → 'claude-opus-4-6')
+  // Copilot: strip the routing prefix and normalize known model aliases to
+  // the exact IDs advertised by Copilot /models (e.g., 4-6 -> 4.6).
   if (config.provider === SupportedProvider.Copilot) {
-    const actualModelId = modelId.startsWith('copilot:') ? modelId.slice('copilot:'.length) : modelId;
+    const actualModelId = normalizeCopilotModelId(modelId);
     return (instance as ReturnType<typeof createOpenAI>).chat(actualModelId);
   }
 
