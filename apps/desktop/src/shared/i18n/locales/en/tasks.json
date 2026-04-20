@@ -1,5 +1,15 @@
 {
   "refreshTasks": "Refresh Tasks",
+  "errorPreview": {
+    "title": "Last error",
+    "failedDuring": "Failed during {{phase}}",
+    "viewFullLogs": "View full logs",
+    "phases": {
+      "planning": "Planning",
+      "coding": "Coding",
+      "validation": "Validation"
+    }
+  },
   "status": {
     "backlog": "Backlog",
     "queue": "Queue",
@@ -76,6 +86,8 @@
     "emptyAiReviewHint": "AI will review completed tasks",
     "emptyHumanReview": "Nothing to review",
     "emptyHumanReviewHint": "Tasks await your approval here",
+    "emptyError": "No failed tasks",
+    "emptyErrorHint": "Tasks that encountered an error will appear here",
     "emptyDone": "No completed tasks",
     "emptyDoneHint": "Approved tasks appear here",
     "emptyDefault": "No tasks",

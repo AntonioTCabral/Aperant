@@ -1,5 +1,15 @@
 {
   "refreshTasks": "Actualiser les tâches",
+  "errorPreview": {
+    "title": "Dernière erreur",
+    "failedDuring": "Échec pendant {{phase}}",
+    "viewFullLogs": "Voir les logs complets",
+    "phases": {
+      "planning": "Planification",
+      "coding": "Développement",
+      "validation": "Validation"
+    }
+  },
   "status": {
     "backlog": "Backlog",
     "queue": "File d'attente",
@@ -76,6 +86,8 @@
     "emptyAiReviewHint": "L'IA révisera les tâches terminées",
     "emptyHumanReview": "Rien à réviser",
     "emptyHumanReviewHint": "Les tâches attendent votre approbation ici",
+    "emptyError": "Aucune tâche en erreur",
+    "emptyErrorHint": "Les tâches ayant rencontré une erreur apparaissent ici",
     "emptyDone": "Aucune tâche terminée",
     "emptyDoneHint": "Les tâches approuvées apparaissent ici",
     "emptyDefault": "Aucune tâche",

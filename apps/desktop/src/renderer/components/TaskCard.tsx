@@ -13,8 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn, formatRelativeTime, sanitizeMarkdownForDisplay } from '../lib/utils';
 import { PhaseProgressIndicator } from './PhaseProgressIndicator';
+import { useTaskLastError } from './task-detail/hooks/useTaskLastError';
 import {
   TASK_CATEGORY_LABELS,
   TASK_CATEGORY_COLORS,
@@ -142,6 +144,8 @@ export const TaskCard = memo(function TaskCard({
   const isRunning = task.status === 'in_progress';
   const executionPhase = task.executionProgress?.phase;
   const hasActiveExecution = executionPhase && executionPhase !== 'idle' && executionPhase !== 'complete' && executionPhase !== 'failed';
+  const isErrored = task.status === 'error' || (task.status === 'human_review' && task.reviewReason === 'errors');
+  const { error: lastError } = useTaskLastError(task.projectId, task.specId, isErrored);
 
   // Check if task is in human_review but has no completed subtasks (crashed/incomplete)
   const isIncomplete = isIncompleteHumanReview(task);
@@ -433,8 +437,9 @@ export const TaskCard = memo(function TaskCard({
                    </Badge>
                  )
              )}
-            {/* Review reason badge - explains why task needs human review */}
-            {reviewReasonInfo && !isStuck && !isIncomplete && (
+            {/* Review reason badge - explains why task needs human review.
+                Hidden when the error preview strip renders below (avoids duplication). */}
+            {reviewReasonInfo && !isStuck && !isIncomplete && !isErrored && (
               <Badge
                 variant={reviewReasonInfo.variant}
                 className="text-[10px] px-1.5 py-0.5"
@@ -516,6 +521,63 @@ export const TaskCard = memo(function TaskCard({
               isStuck={isStuck}
               isRunning={isRunning}
             />
+          </div>
+        )}
+
+        {/* Error preview - shown when task errored; click to expand full detail */}
+        {isErrored && lastError && (
+          <div className="mt-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-left transition-colors hover:bg-destructive/15"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-destructive" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-destructive line-clamp-2">
+                      {lastError.content.split('\n')[0]}
+                    </p>
+                    <p className="text-[10px] text-destructive/70 mt-0.5">
+                      {t('errorPreview.failedDuring', { phase: t(`errorPreview.phases.${lastError.phase}` as 'errorPreview.phases.planning') })}
+                    </p>
+                  </div>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-96 max-w-[calc(100vw-2rem)] p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm font-semibold text-foreground">
+                    {t('errorPreview.title')}
+                  </span>
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    {formatRelativeTime(new Date(lastError.timestamp))}
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-auto p-3">
+                  <pre className="whitespace-pre-wrap break-words text-xs font-mono text-foreground/90">
+                    {lastError.detail || lastError.content}
+                  </pre>
+                </div>
+                <div className="border-t border-border px-3 py-2">
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClick();
+                    }}
+                  >
+                    {t('errorPreview.viewFullLogs')} →
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         )}
 

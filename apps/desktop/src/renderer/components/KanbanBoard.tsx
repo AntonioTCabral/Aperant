@@ -19,7 +19,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-import { Plus, Inbox, Loader2, Eye, CheckCircle2, Archive, RefreshCw, GitPullRequest, X, Settings, ListPlus, ChevronLeft, ChevronRight, ChevronsRight, Lock, Unlock, Trash2 } from 'lucide-react';
+import { Plus, Inbox, Loader2, Eye, CheckCircle2, Archive, RefreshCw, GitPullRequest, X, Settings, ListPlus, ChevronLeft, ChevronRight, ChevronsRight, Lock, Unlock, Trash2, AlertTriangle } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
@@ -54,15 +54,17 @@ function isValidDropColumn(id: string): id is typeof TASK_STATUS_COLUMNS[number]
 }
 
 /**
- * Get the visual column for a task status.
- * pr_created tasks are displayed in the 'done' column, so we map them accordingly.
- * error tasks are displayed in the 'human_review' column (errors need human attention).
+ * Get the visual column for a task.
+ * pr_created tasks are displayed in the 'done' column.
+ * Tasks with status='error' OR (status='human_review' AND reviewReason='errors')
+ * are displayed in the dedicated 'error' column.
  * This is used to compare visual positions during drag-and-drop operations.
  */
-function getVisualColumn(status: TaskStatus): typeof TASK_STATUS_COLUMNS[number] {
-  if (status === 'pr_created') return 'done';
-  if (status === 'error') return 'human_review';
-  return status;
+function getVisualColumn(task: Pick<Task, 'status' | 'reviewReason'>): typeof TASK_STATUS_COLUMNS[number] {
+  if (task.status === 'pr_created') return 'done';
+  if (task.status === 'error') return 'error';
+  if (task.status === 'human_review' && task.reviewReason === 'errors') return 'error';
+  return task.status;
 }
 
 interface KanbanBoardProps {
@@ -216,6 +218,12 @@ const getEmptyStateContent = (status: TaskStatus, t: (key: string) => string): {
         message: t('kanban.emptyHumanReview'),
         subtext: t('kanban.emptyHumanReviewHint')
       };
+    case 'error':
+      return {
+        icon: <AlertTriangle className="h-6 w-6 text-muted-foreground/50" />,
+        message: t('kanban.emptyError'),
+        subtext: t('kanban.emptyErrorHint')
+      };
     case 'done':
       return {
         icon: <CheckCircle2 className="h-6 w-6 text-muted-foreground/50" />,
@@ -318,6 +326,8 @@ const DroppableColumn = memo(function DroppableColumn({ status, tasks, onTaskCli
         return 'column-ai-review';
       case 'human_review':
         return 'column-human-review';
+      case 'error':
+        return 'border-t-destructive';
       case 'done':
         return 'column-done';
       default:
@@ -738,19 +748,19 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
 
   const tasksByStatus = useMemo(() => {
     // Note: pr_created tasks are shown in the 'done' column since they're essentially complete
-    // Note: error tasks are shown in the 'human_review' column since they need human attention
+    // Note: errored tasks (status='error' or human_review+reviewReason='errors') go to 'error' column
     const grouped: Record<typeof TASK_STATUS_COLUMNS[number], Task[]> = {
       backlog: [],
       queue: [],
       in_progress: [],
       ai_review: [],
       human_review: [],
+      error: [],
       done: []
     };
 
     filteredTasks.forEach((task) => {
-      // Map pr_created tasks to the done column, error tasks to human_review
-      const targetColumn = getVisualColumn(task.status);
+      const targetColumn = getVisualColumn(task);
       if (grouped[targetColumn]) {
         grouped[targetColumn].push(task);
       }
@@ -1376,8 +1386,8 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
         if (!task) return;
 
         // Compare visual columns
-        const taskVisualColumn = getVisualColumn(task.status);
-        const overTaskVisualColumn = getVisualColumn(overTask.status);
+        const taskVisualColumn = getVisualColumn(task);
+        const overTaskVisualColumn = getVisualColumn(overTask);
 
         // Same visual column: reorder within column
         if (taskVisualColumn === overTaskVisualColumn) {
@@ -1419,6 +1429,10 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
     }
 
     if (!newStatus || newStatus === oldStatus) return;
+
+    // Block cross-column drops into the Error column — errors are system-produced,
+    // not user-assignable. Intra-column reordering is unaffected (handled above).
+    if (newStatus === 'error' && oldStatus !== 'error') return;
 
     // Persist status change via handleStatusChange which enforces queue capacity,
     // handles worktree cleanup dialogs, and calls processQueue() when a task

@@ -16,6 +16,7 @@ export const TASK_STATUS_COLUMNS = [
   'in_progress',
   'ai_review',
   'human_review',
+  'error',
   'done'
 ] as const;
 
@@ -23,8 +24,7 @@ export type TaskStatusColumn = typeof TASK_STATUS_COLUMNS[number];
 
 // Status label translation keys (use with t() from react-i18next)
 // Note: pr_created maps to 'done' column in Kanban view (see KanbanBoard.tsx)
-// Note: error maps to 'human_review' column in Kanban view (errors need human attention)
-export const TASK_STATUS_LABELS: Record<TaskStatusColumn | 'pr_created' | 'error', string> = {
+export const TASK_STATUS_LABELS: Record<TaskStatusColumn | 'pr_created', string> = {
   backlog: 'columns.backlog',
   queue: 'columns.queue',
   in_progress: 'columns.in_progress',
@@ -37,8 +37,7 @@ export const TASK_STATUS_LABELS: Record<TaskStatusColumn | 'pr_created' | 'error
 
 // Status colors for UI
 // Note: pr_created maps to 'done' column in Kanban view (see KanbanBoard.tsx)
-// Note: error maps to 'human_review' column in Kanban view (errors need human attention)
-export const TASK_STATUS_COLORS: Record<TaskStatusColumn | 'pr_created' | 'error', string> = {
+export const TASK_STATUS_COLORS: Record<TaskStatusColumn | 'pr_created', string> = {
   backlog: 'bg-muted text-muted-foreground',
   queue: 'bg-cyan-500/10 text-cyan-400',
   in_progress: 'bg-info/10 text-info',
