@@ -340,10 +340,10 @@ export const PROVIDER_PRESET_DEFINITIONS: Partial<Record<BuiltinProvider, Record
     quick:    { primaryModel: '', primaryThinking: 'low', phaseModels: { spec: '', planning: '', coding: '', qa: '' }, phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
   },
   copilot: {
-    auto:     { primaryModel: 'copilot:claude-sonnet-4-6', primaryThinking: 'low', phaseModels: { spec: 'copilot:claude-sonnet-4-6', planning: 'copilot:claude-sonnet-4-6', coding: 'copilot:claude-sonnet-4-6', qa: 'copilot:claude-sonnet-4-6' },       phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
-    complex:  { primaryModel: 'copilot:claude-opus-4-6',   primaryThinking: 'low', phaseModels: { spec: 'copilot:claude-opus-4-6', planning: 'copilot:claude-opus-4-6', coding: 'copilot:claude-sonnet-4-6', qa: 'copilot:claude-opus-4-6' },             phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
-    balanced: { primaryModel: 'copilot:gpt-4.1',           primaryThinking: 'low', phaseModels: { spec: 'copilot:gpt-4.1', planning: 'copilot:gpt-4.1', coding: 'copilot:gpt-4.1', qa: 'copilot:gpt-4.1' },                                             phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
-    quick:    { primaryModel: 'copilot:claude-haiku-4-5',  primaryThinking: 'low', phaseModels: { spec: 'copilot:claude-haiku-4-5', planning: 'copilot:claude-haiku-4-5', coding: 'copilot:claude-haiku-4-5', qa: 'copilot:claude-haiku-4-5' },           phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
+    auto:     { primaryModel: 'copilot:claude-sonnet-4-6', primaryThinking: 'high', phaseModels: { spec: 'copilot:claude-sonnet-4-6', planning: 'copilot:claude-sonnet-4-6', coding: 'copilot:claude-sonnet-4-6', qa: 'copilot:claude-sonnet-4-6' },       phaseThinking: { spec: 'high', planning: 'high', coding: 'high', qa: 'high' } },
+    complex:  { primaryModel: 'copilot:claude-opus-4-6',   primaryThinking: 'high', phaseModels: { spec: 'copilot:claude-opus-4-6', planning: 'copilot:claude-opus-4-6', coding: 'copilot:claude-sonnet-4-6', qa: 'copilot:claude-opus-4-6' },             phaseThinking: { spec: 'high', planning: 'high', coding: 'high', qa: 'high' } },
+    balanced: { primaryModel: 'copilot:gpt-4.1',           primaryThinking: 'low',  phaseModels: { spec: 'copilot:gpt-4.1', planning: 'copilot:gpt-4.1', coding: 'copilot:gpt-4.1', qa: 'copilot:gpt-4.1' },                                             phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
+    quick:    { primaryModel: 'copilot:claude-haiku-4-5',  primaryThinking: 'low',  phaseModels: { spec: 'copilot:claude-haiku-4-5', planning: 'copilot:claude-haiku-4-5', coding: 'copilot:claude-haiku-4-5', qa: 'copilot:claude-haiku-4-5' },           phaseThinking: { spec: 'low', planning: 'low', coding: 'low', qa: 'low' } },
   },
 };
 
@@ -540,12 +540,12 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
   },
   // ── GitHub Copilot models ─────────────────────────────────────────────────
   'copilot:claude-opus-4-6': {
-    copilot: { modelId: 'copilot:claude-opus-4-6', reasoning: { type: 'none' } },
+    copilot: { modelId: 'copilot:claude-opus-4-6', reasoning: { type: 'reasoning_effort', level: 'high' } },
     anthropic: { modelId: 'claude-opus-4-6', reasoning: { type: 'adaptive_effort', level: 'high' } },
     openai: { modelId: 'gpt-5.3-codex', reasoning: { type: 'reasoning_effort', level: 'high' } },
   },
   'copilot:claude-sonnet-4-6': {
-    copilot: { modelId: 'copilot:claude-sonnet-4-6', reasoning: { type: 'none' } },
+    copilot: { modelId: 'copilot:claude-sonnet-4-6', reasoning: { type: 'reasoning_effort', level: 'high' } },
     anthropic: { modelId: 'claude-sonnet-4-6', reasoning: { type: 'thinking_tokens', level: 'medium' } },
     openai: { modelId: 'gpt-5.2-codex', reasoning: { type: 'reasoning_effort', level: 'medium' } },
   },
@@ -555,7 +555,7 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
     openai: { modelId: 'gpt-5.1-codex-mini', reasoning: { type: 'reasoning_effort', level: 'low' } },
   },
   'copilot:gpt-5.3-codex': {
-    copilot: { modelId: 'copilot:gpt-5.3-codex', reasoning: { type: 'none' } },
+    copilot: { modelId: 'copilot:gpt-5.3-codex', reasoning: { type: 'reasoning_effort', level: 'high' } },
     openai: { modelId: 'gpt-5.3-codex', reasoning: { type: 'reasoning_effort', level: 'high' } },
     anthropic: { modelId: 'claude-opus-4-6', reasoning: { type: 'adaptive_effort', level: 'high' } },
   },
@@ -565,7 +565,7 @@ export const DEFAULT_MODEL_EQUIVALENCES: Record<string, Partial<Record<BuiltinPr
     anthropic: { modelId: 'claude-sonnet-4-6', reasoning: { type: 'thinking_tokens', level: 'medium' } },
   },
   'copilot:o4-mini': {
-    copilot: { modelId: 'copilot:o4-mini', reasoning: { type: 'none' } },
+    copilot: { modelId: 'copilot:o4-mini', reasoning: { type: 'reasoning_effort', level: 'medium' } },
     openai: { modelId: 'o4-mini', reasoning: { type: 'reasoning_effort', level: 'medium' } },
     anthropic: { modelId: 'claude-sonnet-4-6', reasoning: { type: 'thinking_tokens', level: 'medium' } },
   },

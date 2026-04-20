@@ -112,9 +112,12 @@ export function transformThinkingConfig(
     }
 
     case 'copilot':
-      // Copilot proxies multiple models; thinking support depends on the underlying model.
-      // Since reasoning params aren't exposed through the Copilot Chat API, return empty config.
-      return {};
+      // Copilot Chat API is OpenAI-compatible and forwards `reasoning_effort`
+      // to the underlying model (GPT-5 / o-series / Claude-4). Non-reasoning
+      // models (GPT-4.1, Haiku) ignore it server-side.
+      return {
+        reasoningEffort: thinkingLevel,
+      };
 
     default:
       // Providers without thinking support return empty config
